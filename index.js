@@ -18,7 +18,37 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 
 // Middleware
 app.use(express.json());
-app.use(express.static('public'));
+// Проверяем существование папки public
+const fs = require('fs');
+const path = require('path');
+
+const publicPath = path.join(__dirname, 'public');
+if (fs.existsSync(publicPath)) {
+    app.use(express.static('public'));
+} else {
+    console.log('⚠️ Папка public не найдена, создаем временную страницу');
+    
+    // Создаем временный HTML
+    app.get('/', (req, res) => {
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Telegram Clicker</title>
+                <style>
+                    body { font-family: Arial; padding: 50px; text-align: center; }
+                    button { padding: 20px 40px; font-size: 24px; }
+                </style>
+            </head>
+            <body>
+                <h1>🎮 Telegram Clicker Mini App</h1>
+                <p>Бот работает! Фронтенд скоро будет добавлен.</p>
+                <button onclick="alert('+1 монета! 🪙')">👆 Кликни!</button>
+            </body>
+            </html>
+        `);
+    });
+}
 
 // База данных (SQLite)
 const db = new sqlite3.Database('./game.db');
