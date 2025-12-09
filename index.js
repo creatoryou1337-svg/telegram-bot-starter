@@ -927,14 +927,28 @@ app.listen(PORT, () => {
 // Элегантное завершение
 process.once('SIGINT', () => {
     console.log('\n🛑 Остановка бота...');
-    bot.stop('SIGINT');
+    try {
+        // Если бот запущен через bot.launch() (локальная разработка)
+        if (bot && typeof bot.stop === 'function') {
+            bot.stop('SIGINT');
+        }
+    } catch (error) {
+        console.log('Бот уже остановлен или работает в вебхук режиме');
+    }
     db.close();
     process.exit(0);
 });
 
 process.once('SIGTERM', () => {
     console.log('\n🛑 Завершение работы...');
-    bot.stop('SIGTERM');
+    try {
+        // Если бот запущен через bot.launch() (локальная разработка)
+        if (bot && typeof bot.stop === 'function') {
+            bot.stop('SIGTERM');
+        }
+    } catch (error) {
+        console.log('Бот уже остановлен или работает в вебхук режиме');
+    }
     db.close();
     process.exit(0);
 });
