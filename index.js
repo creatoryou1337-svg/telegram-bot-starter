@@ -938,3 +938,84 @@ process.once('SIGTERM', () => {
     db.close();
     process.exit(0);
 });
+// Базовые функции для работы с API
+const API_URL = 'http://localhost:3001';
+
+// 1. Получить пользователя по ID
+async function getUser(userId) {
+  try {
+    const response = await fetch(`${API_URL}/users/${userId}`);
+    if (!response.ok) throw new Error('Пользователь не найден');
+    return await response.json();
+  } catch (error) {
+    console.error('Ошибка загрузки:', error);
+    return null;
+  }
+}
+
+// 2. Создать нового пользователя
+async function createUser(username) {
+  try {
+    const newUser = {
+      username,
+      progress: {
+        level: 1,
+        clicks: 0,
+        coins: 100,
+        upgrades: [],
+        lastLogin: new Date().toISOString()
+      }
+    };
+    
+    const response = await fetch(`${API_URL}/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newUser)
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Ошибка создания:', error);
+    return null;
+  }
+}
+
+// 3. Обновить прогресс пользователя
+async function updateUserProgress(userId, progress) {
+  try {
+    // Сначала получаем текущие данные
+    const user = await getUser(userId);
+    if (!user) return null;
+    
+    // Обновляем прогресс
+    user.progress = { ...user.progress, ...progress };
+    user.progress.lastUpdated = new Date().toISOString();
+    
+    const response = await fetch(`${API_URL}/users/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(user)
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Ошибка обновления:', error);
+    return null;
+  }
+}
+
+// 4. Патч-запрос для частичного обновления
+async function patchUser(userId, updates) {
+  try {
+    const response = await fetch(`${API_URL}/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Ошибка обновления:', error);
+    return null;
+  }
+}
