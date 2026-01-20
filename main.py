@@ -32,12 +32,12 @@ def get_main_keyboard():
         persistent=True
     )
 
-    # ← Вот где добавляются кнопки! Без этого — ошибка "keyboard missing"
+    # ← КЛЮЧЕВОЙ МОМЕНТ: добавляем кнопки!
     for i in range(0, len(THEMES), 2):
         row = [KeyboardButton(text=THEMES[i])]
         if i + 1 < len(THEMES):
             row.append(KeyboardButton(text=THEMES[i + 1]))
-        kb.add(*row)  # ← .add() или .row() — обязательно!
+        kb.add(*row)  # ← .add() добавляет ряд кнопок
 
     kb.add(KeyboardButton(text="Связаться с оператором"))
 
