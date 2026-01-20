@@ -27,23 +27,26 @@ THEMES = [
 ]
 
 def get_main_keyboard():
-    kb = ReplyKeyboardMarkup(
-        resize_keyboard=True,
-        one_time_keyboard=False,
-        row_width=2,  # 2 кнопки в ряд → красивая сетка
-        persistent=True  # Клавиатура остаётся всегда
-    )
-
+    # Создаем список кнопок в виде списка списков
+    buttons = []
+    
     # Добавляем кнопки по 2 в ряд
     for i in range(0, len(THEMES), 2):
         row = [KeyboardButton(text=THEMES[i])]
         if i + 1 < len(THEMES):
             row.append(KeyboardButton(text=THEMES[i + 1]))
-        kb.add(*row)  # ← Это обязательно! Добавляет ряд
-
+        buttons.append(row)
+    
     # Кнопка оператора внизу отдельно
-    kb.add(KeyboardButton(text="Оператор"))
-
+    buttons.append([KeyboardButton(text="Оператор")])
+    
+    kb = ReplyKeyboardMarkup(
+        keyboard=buttons,
+        resize_keyboard=True,
+        one_time_keyboard=False,
+        persistent=True  # Клавиатура остаётся всегда
+    )
+    
     return kb
 
 @router.message(F.command == "menu")
@@ -60,8 +63,11 @@ async def handle_theme(message: Message):
     # Можно сделать разный текст для каждой темы позже
     text = f"<b>{theme}</b>\n\nЗдесь будет подробная информация по этой теме...\n(пока заглушка)"
     
-    back_kb = ReplyKeyboardMarkup(resize_keyboard=True, persistent=True)
-    back_kb.add(KeyboardButton(text="↩ Главное меню"))
+    back_kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="↩ Главное меню")]],
+        resize_keyboard=True,
+        persistent=True
+    )
     
     await message.answer(text, reply_markup=back_kb, parse_mode="HTML")
 
