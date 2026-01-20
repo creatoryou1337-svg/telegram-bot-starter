@@ -5,7 +5,6 @@ import os
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
-# Токен из Render (BOT_TOKEN) или fallback
 TOKEN = os.getenv("BOT_TOKEN", "7638473239:AAE87V8T6Xdn0kCQg9rg1KPW1MuociDwWaY")
 
 logging.basicConfig(level=logging.INFO)
@@ -32,12 +31,16 @@ def get_main_keyboard():
         row_width=2,
         persistent=True
     )
+
+    # ← Вот где добавляются кнопки! Без этого — ошибка "keyboard missing"
     for i in range(0, len(THEMES), 2):
         row = [KeyboardButton(text=THEMES[i])]
         if i + 1 < len(THEMES):
             row.append(KeyboardButton(text=THEMES[i + 1]))
-        kb.row(*row)
+        kb.add(*row)  # ← .add() или .row() — обязательно!
+
     kb.add(KeyboardButton(text="Связаться с оператором"))
+
     return kb
 
 @router.message(F.command == "menu")
@@ -51,8 +54,11 @@ async def cmd_menu(message: Message):
 @router.message(F.text.in_(THEMES))
 async def handle_theme(message: Message):
     theme = message.text
-    text = f"<b>{theme}</b>\n\nЗдесь будет подробный ответ по теме...\n(пока заглушка — потом заменишь)"
-    back_kb = ReplyKeyboardMarkup(resize_keyboard=True, persistent=True)
+    text = f"<b>{theme}</b>\n\nЗдесь будет подробный ответ по теме...\n(пока заглушка)"
+    back_kb = ReplyKeyboardMarkup(
+        resize_keyboard=True,
+        persistent=True
+    )
     back_kb.add(KeyboardButton(text="↩ Главное меню"))
     await message.answer(text, reply_markup=back_kb, parse_mode="HTML")
 
@@ -66,7 +72,6 @@ async def handle_operator(message: Message):
 async def back_to_main(message: Message):
     await message.answer("Главное меню:", reply_markup=get_main_keyboard())
 
-# Catch-all: если ничего не подошло
 @router.message()
 async def catch_all(message: Message):
     await message.answer("Напишите /menu, чтобы открыть меню поддержки!")
