@@ -5,7 +5,7 @@ import os
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
-# Токен из Render (BOT_TOKEN)
+# Токен из Render
 TOKEN = os.getenv("BOT_TOKEN", "7638473239:AAE87V8T6Xdn0kCQg9rg1KPW1MuociDwWaY")
 
 logging.basicConfig(level=logging.INFO)
@@ -15,9 +15,10 @@ router = Router()
 dp.include_router(router)
 
 THEMES = [
-    "Как стать мерчантом",
+    "Как стать мерчантом",  # Самый важный — первый
     "Статус сделки или заявки",
     "P2P-торговля и Express-покупки",
+    "Реферальная программа",
     "Комиссии и лимиты",
     "Отзывы пользователей",
     "KYC и безопасность аккаунта",
@@ -29,18 +30,19 @@ def get_main_keyboard():
     kb = ReplyKeyboardMarkup(
         resize_keyboard=True,
         one_time_keyboard=False,
-        row_width=2,
-        persistent=True
+        row_width=2,  # 2 кнопки в ряд → красивая сетка
+        persistent=True  # Клавиатура остаётся всегда
     )
 
-    # Добавляем кнопки — ЭТО КРИТИЧЕСКИ ВАЖНО!
+    # Добавляем кнопки по 2 в ряд
     for i in range(0, len(THEMES), 2):
         row = [KeyboardButton(text=THEMES[i])]
         if i + 1 < len(THEMES):
             row.append(KeyboardButton(text=THEMES[i + 1]))
-        kb.add(*row)  # ← .add(*row) добавляет ряд кнопок
+        kb.add(*row)  # ← Это обязательно! Добавляет ряд
 
-    kb.add(KeyboardButton(text="Связаться с оператором"))
+    # Кнопка оператора внизу отдельно
+    kb.add(KeyboardButton(text="Оператор"))
 
     return kb
 
@@ -48,25 +50,25 @@ def get_main_keyboard():
 @router.message(F.text == "/menu")
 async def cmd_menu(message: Message):
     await message.answer(
-        "Выберите интересующую тему\nили задайте свой вопрос:",
+        "Выберите интересующую тему или задайте свой вопрос:",
         reply_markup=get_main_keyboard()
     )
 
 @router.message(F.text.in_(THEMES))
 async def handle_theme(message: Message):
     theme = message.text
-    text = f"<b>{theme}</b>\n\nЗдесь будет подробный ответ по теме...\n(пока заглушка)"
-    back_kb = ReplyKeyboardMarkup(
-        resize_keyboard=True,
-        persistent=True
-    )
+    # Можно сделать разный текст для каждой темы позже
+    text = f"<b>{theme}</b>\n\nЗдесь будет подробная информация по этой теме...\n(пока заглушка)"
+    
+    back_kb = ReplyKeyboardMarkup(resize_keyboard=True, persistent=True)
     back_kb.add(KeyboardButton(text="↩ Главное меню"))
+    
     await message.answer(text, reply_markup=back_kb, parse_mode="HTML")
 
-@router.message(F.text == "Связаться с оператором")
+@router.message(F.text == "Оператор")
 async def handle_operator(message: Message):
     await message.answer(
-        "Напишите @Operator или опишите проблему — подключим оператора!"
+        "Напишите @Operator или просто опишите проблему — подключим оператора!"
     )
 
 @router.message(F.text == "↩ Главное меню")
