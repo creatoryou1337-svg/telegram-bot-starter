@@ -15,10 +15,10 @@ router = Router()
 dp.include_router(router)
 
 THEMES = [
-    "Как стать мерчантом",  # Самый важный — первый
+    "Как стать мерчантом",
     "Статус сделки или заявки",
-    "P2P-торговля и Express-покупки",
     "Реферальная программа",
+    "P2P-торговля и Express-покупки",
     "Комиссии и лимиты",
     "Отзывы пользователей",
     "KYC и безопасность аккаунта",
@@ -43,14 +43,14 @@ def get_main_keyboard():
     kb = ReplyKeyboardMarkup(
         keyboard=buttons,
         resize_keyboard=True,
-        one_time_keyboard=False,
-        persistent=True  # Клавиатура остаётся всегда
+        persistent=True
     )
     
     return kb
 
 @router.message(F.command == "menu")
 @router.message(F.text == "/menu")
+@router.message(F.text == "↩ Главное меню")
 async def cmd_menu(message: Message):
     await message.answer(
         "Выберите интересующую тему или задайте свой вопрос:",
@@ -76,10 +76,6 @@ async def handle_operator(message: Message):
     await message.answer(
         "Напишите @Operator или просто опишите проблему — подключим оператора!"
     )
-
-@router.message(F.text == "↩ Главное меню")
-async def back_to_main(message: Message):
-    await message.answer("Главное меню:", reply_markup=get_main_keyboard())
 
 @router.message()
 async def catch_all(message: Message):
