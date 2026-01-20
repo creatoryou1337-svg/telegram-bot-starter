@@ -15,50 +15,72 @@ router = Router()
 dp.include_router(router)
 
 def get_main_keyboard():
-    # Создаем клавиатуру КРУПНЫМИ кнопками внизу экрана
-    # По 2 кнопки в ряд, как на скриншоте
+    # ГЛАВНОЕ МЕНЮ как на скриншоте: 3 строки по 2 кнопки
     kb = ReplyKeyboardMarkup(
         keyboard=[
-            # Первый ряд: 2 кнопки
+            # Первый ряд
+            [
+                KeyboardButton(text="Магазин 🛒"),
+                KeyboardButton(text="Кабинет 🏠")
+            ],
+            # Второй ряд
+            [
+                KeyboardButton(text="FAQ !?"),
+                KeyboardButton(text="Гарантии ✔️")
+            ],
+            # Третий ряд
+            [
+                KeyboardButton(text="Отзывы 📝"),
+                KeyboardButton(text="Поддержка 🌟")
+            ]
+        ],
+        resize_keyboard=True,
+        persistent=True
+    )
+    return kb
+
+def get_support_keyboard():
+    # Клавиатура для раздела ПОДДЕРЖКИ (ваши 9 тем)
+    kb = ReplyKeyboardMarkup(
+        keyboard=[
+            # 1 ряд
             [
                 KeyboardButton(text="Как стать мерчантом"),
                 KeyboardButton(text="Статус сделки")
             ],
-            # Второй ряд: 2 кнопки
+            # 2 ряд
             [
                 KeyboardButton(text="Реферальная программа"),
                 KeyboardButton(text="P2P-торговля")
             ],
-            # Третий ряд: 2 кнопки
+            # 3 ряд
             [
                 KeyboardButton(text="Комиссии и лимиты"),
                 KeyboardButton(text="Отзывы пользователей")
             ],
-            # Четвертый ряд: 2 кнопки
+            # 4 ряд
             [
                 KeyboardButton(text="KYC и безопасность"),
                 KeyboardButton(text="Сотрудничество")
             ],
-            # Пятый ряд: 1 кнопка по центру
+            # 5 ряд
             [
                 KeyboardButton(text="Техническая поддержка")
             ],
-            # Шестой ряд: 1 кнопка оператора
+            # 6 ряд - оператор и назад
             [
-                KeyboardButton(text="Оператор")
+                KeyboardButton(text="Оператор"),
+                KeyboardButton(text="↩ Главное меню")
             ]
         ],
-        resize_keyboard=True,  # Кнопки растягиваются по ширине экрана
-        one_time_keyboard=False,  # Клавиатура не скрывается
-        persistent=True  # Остается всегда видимой
+        resize_keyboard=True,
+        persistent=True
     )
-    
     return kb
 
 @router.message(F.command == "start")
 async def cmd_start(message: Message):
     await message.answer(
-        "Добро пожаловать!\n\n"
         "ОПЛАТА\n"
         "СЕРВИСОВ И ПР\n\n"
         "YEP",
@@ -66,13 +88,47 @@ async def cmd_start(message: Message):
     )
 
 @router.message(F.command == "menu")
-@router.message(F.text == "/menu")
+@router.message(F.text == "↩ Главное меню")
 async def cmd_menu(message: Message):
     await message.answer(
-        "Выберите интересующую тему или задайте свой вопрос:",
+        "Главное меню.",
         reply_markup=get_main_keyboard()
     )
 
+# Обработчики для главного меню
+@router.message(F.text == "Магазин 🛒")
+async def handle_shop(message: Message):
+    await message.answer("Раздел Магазин 🛒")
+
+@router.message(F.text == "Кабинет 🏠")
+async def handle_cabinet(message: Message):
+    await message.answer("Раздел Кабинет 🏠")
+
+@router.message(F.text == "FAQ !?")
+async def handle_faq(message: Message):
+    await message.answer("Раздел FAQ !?")
+
+@router.message(F.text == "Гарантии ✔️")
+async def handle_guarantees(message: Message):
+    await message.answer("Раздел Гарантии ✔️")
+
+@router.message(F.text == "Отзывы 📝")
+async def handle_reviews(message: Message):
+    # ВАЖНО: Это для кнопки ОТЗЫВЫ из главного меню
+    await message.answer(
+        "Создали отдельный чат с отзывами, только учтите, что писать в чат могут только те, кто хоть раз что-то купил.\n\n"
+        "Чатик с отзывами"
+    )
+
+@router.message(F.text == "Поддержка 🌟")
+async def handle_support(message: Message):
+    # Это для кнопки ПОДДЕРЖКА из главного меню
+    await message.answer(
+        "Выберите интересующую тему или задайте свой вопрос:",
+        reply_markup=get_support_keyboard()
+    )
+
+# Обработчики для меню поддержки
 @router.message(F.text == "Как стать мерчантом")
 async def handle_merchant(message: Message):
     await message.answer("Информация о том, как стать мерчантом...")
@@ -94,7 +150,8 @@ async def handle_fees(message: Message):
     await message.answer("Комиссии и лимиты платформы...")
 
 @router.message(F.text == "Отзывы пользователей")
-async def handle_reviews(message: Message):
+async def handle_reviews_support(message: Message):
+    # Это для кнопки "Отзывы пользователей" из меню поддержки
     await message.answer("Отзывы пользователей о сервисе...")
 
 @router.message(F.text == "KYC и безопасность")
@@ -106,7 +163,7 @@ async def handle_cooperation(message: Message):
     await message.answer("Сотрудничество с RedWallet...")
 
 @router.message(F.text == "Техническая поддержка")
-async def handle_support(message: Message):
+async def handle_tech_support(message: Message):
     await message.answer("Техническая поддержка...")
 
 @router.message(F.text == "Оператор")
@@ -116,7 +173,7 @@ async def handle_operator(message: Message):
 @router.message()
 async def catch_all(message: Message):
     await message.answer(
-        "Используйте кнопки меню ниже или напишите /menu",
+        "Главное меню.",
         reply_markup=get_main_keyboard()
     )
 
