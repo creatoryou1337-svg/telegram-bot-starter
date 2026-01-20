@@ -5,6 +5,7 @@ import os
 from aiogram import Bot, Dispatcher, Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 
+# Токен из Render (BOT_TOKEN)
 TOKEN = os.getenv("BOT_TOKEN", "7638473239:AAE87V8T6Xdn0kCQg9rg1KPW1MuociDwWaY")
 
 logging.basicConfig(level=logging.INFO)
@@ -32,12 +33,12 @@ def get_main_keyboard():
         persistent=True
     )
 
-    # ← КЛЮЧЕВОЙ МОМЕНТ: добавляем кнопки!
+    # Добавляем кнопки — ЭТО КРИТИЧЕСКИ ВАЖНО!
     for i in range(0, len(THEMES), 2):
         row = [KeyboardButton(text=THEMES[i])]
         if i + 1 < len(THEMES):
             row.append(KeyboardButton(text=THEMES[i + 1]))
-        kb.add(*row)  # ← .add() добавляет ряд кнопок
+        kb.add(*row)  # ← .add(*row) добавляет ряд кнопок
 
     kb.add(KeyboardButton(text="Связаться с оператором"))
 
