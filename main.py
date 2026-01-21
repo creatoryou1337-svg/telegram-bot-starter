@@ -9,8 +9,17 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Ответы из твоего старого списка (индексы соответствуют FAQ-пунктам)
-ANSWERS = [
+FAQ_TOPICS = [
+    "Статус сделки или заявки",
+    "Реферальная программа",
+    "P2P-торговля и Express-покупки",
+    "Комиссии и лимиты",
+    "Отзывы пользователей",
+    "KYC и безопасность аккаунта",
+    "Сотрудничество с RedWallet"
+]
+
+FAQ_ANSWERS = [
     "Информацию о статусе сделки вы можете посмотреть в приложении @rwapp_bot.\n\n"
     "Если у вас возникла спорная ситуация или вопрос по сделке, подготовьте следующие данные:\n\n"
     "• ID сделки или скриншот сделки\n• Краткое описание ситуации\n\n"
@@ -37,30 +46,20 @@ ANSWERS = [
     "Подробности и статус доступны в @rwapp_bot.",
 
     "Вы можете оставить предложение о сотрудничестве прямо здесь в чате. Просто опишите вашу идею, формат или предложение в сообщении.\n\n"
-    "📧 Также вы можете написать нам на почту info@redwallet.app",
-]
-
-FAQ_TOPICS = [
-    "Статус сделки или заявки",
-    "Реферальная программа",
-    "P2P-торговля и Express-покупки",
-    "Комиссии и лимиты",
-    "Отзывы пользователей",
-    "KYC и безопасность аккаунта",
-    "Сотрудничество с RedWallet"
+    "📧 Также вы можете написать нам на почту info@redwallet.app"
 ]
 
 @dp.message(Command("start", "menu"))
 async def show_main_menu(message: types.Message):
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
-        # 1-я строка — одна длинная кнопка
+        # 1-я строка — одна длинная
         [
             types.InlineKeyboardButton(
                 text="Открыть приложение",
                 url="https://t.me/rwapp_bot"
             )
         ],
-        # 2-я строка — три короткие кнопки
+        # 2-я строка — три короткие
         [
             types.InlineKeyboardButton(text="FAQ", callback_data="faq_menu"),
             types.InlineKeyboardButton(text="Стать Мерчантом", callback_data="merchant"),
@@ -79,12 +78,14 @@ async def handle_callback(callback: types.CallbackQuery):
     data = callback.data
 
     if data == "faq_menu":
-        # Показываем FAQ-меню
+        # Красивая сетка FAQ — по 2 кнопки в ряд, последняя одна
         kb = types.InlineKeyboardMarkup(inline_keyboard=[])
-        for i, topic in enumerate(FAQ_TOPICS):
-            kb.inline_keyboard.append([
-                types.InlineKeyboardButton(text=topic, callback_data=f"faq_{i}")
-            ])
+        for i in range(0, len(FAQ_TOPICS), 2):
+            row = []
+            row.append(types.InlineKeyboardButton(text=FAQ_TOPICS[i], callback_data=f"faq_{i}"))
+            if i + 1 < len(FAQ_TOPICS):
+                row.append(types.InlineKeyboardButton(text=FAQ_TOPICS[i + 1], callback_data=f"faq_{i + 1}"))
+            kb.inline_keyboard.append(row)
         kb.inline_keyboard.append([
             types.InlineKeyboardButton(text="↩ Назад", callback_data="back")
         ])
@@ -97,38 +98,40 @@ async def handle_callback(callback: types.CallbackQuery):
     elif data.startswith("faq_"):
         idx = int(data.split("_")[1])
         await callback.message.edit_text(
-            f"<b>{FAQ_TOPICS[idx]}</b>\n\n{ANSWERS[idx]}",
+            f"<b>{FAQ_TOPICS[idx]}</b>\n\n{FAQ_ANSWERS[idx]}",
+            reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[
+                [types.InlineKeyboardButton(text="↩ Назад к FAQ", callback_data="faq_menu")]
+            ]),
             parse_mode="HTML"
         )
 
     elif data == "merchant":
-        # Переход с параметром (при первом запуске отправит /start Мерчант)
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[
+            [types.InlineKeyboardButton(
+                text="Открыть @redwallet_help_bot",
+                url="https://t.me/redwallet_help_bot?start=Мерчант"
+            )],
+            [types.InlineKeyboardButton(text="↩ Назад", callback_data="back")]
+        ])
         await callback.message.edit_text(
             "Переходим к мерчант-боту...",
-            reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[
-                [types.InlineKeyboardButton(
-                    text="Открыть @redwallet_help_bot",
-                    url="https://t.me/redwallet_help_bot?start=Мерчант"
-                )],
-                [types.InlineKeyboardButton(text="↩ Назад", callback_data="back")]
-            ])
+            reply_markup=kb
         )
 
     elif data == "support":
-        # Просто открываем техподдержку
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[
+            [types.InlineKeyboardButton(
+                text="Открыть @redwallet_help_bot",
+                url="https://t.me/redwallet_help_bot"
+            )],
+            [types.InlineKeyboardButton(text="↩ Назад", callback_data="back")]
+        ])
         await callback.message.edit_text(
             "Переходим в техподдержку...",
-            reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[
-                [types.InlineKeyboardButton(
-                    text="Открыть @redwallet_help_bot",
-                    url="https://t.me/redwallet_help_bot"
-                )],
-                [types.InlineKeyboardButton(text="↩ Назад", callback_data="back")]
-            ])
+            reply_markup=kb
         )
 
     elif data == "back":
-        # Возврат в главное меню
         await show_main_menu(callback.message)
 
     await callback.answer()
