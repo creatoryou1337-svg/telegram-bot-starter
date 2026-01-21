@@ -1,43 +1,49 @@
 import asyncio
+import logging
+
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.filters.command import Command
 
 BOT_TOKEN = "7638473239:AAE87V8T6Xdn0kCQg9rg1KPW1MuociDwWaY"
 
+logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-@dp.message(Command("grid"))
-async def show_grid(message: types.Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        # 1-я строка: одна длинная кнопка
+@dp.message(Command("start", "menu"))
+async def cmd_start(message: types.Message):
+    kb = types.InlineKeyboardMarkup(inline_keyboard=[
+        # Первая строка — одна длинная кнопка
         [
-            InlineKeyboardButton(
+            types.InlineKeyboardButton(
                 text="Открыть приложение",
                 url="https://t.me/rwapp_bot"
             )
         ],
-        # 2-я строка: три короткие кнопки в ряд
+        # Вторая строка — три короткие кнопки
         [
-            InlineKeyboardButton(text="FAQ", callback_data="faq"),
-            InlineKeyboardButton(text="Стать Мерчантом", callback_data="merchant"),
-            InlineKeyboardButton(text="Техподдержка", callback_data="support")
+            types.InlineKeyboardButton(text="FAQ", callback_data="faq"),
+            types.InlineKeyboardButton(text="Стать Мерчантом", callback_data="merchant"),
+            types.InlineKeyboardButton(text="Техподдержка", callback_data="support")
         ]
     ])
 
-    await message.answer("Вот сетка 1×3 + 3×1:", reply_markup=kb)
+    await message.answer(
+        "Привет! Выбери действие:",
+        reply_markup=kb
+    )
 
 
 @dp.callback_query()
-async def debug_click(callback: types.CallbackQuery):
-    await callback.answer(f"Нажата кнопка: {callback.data}", show_alert=True)
+async def handle_callback(callback: types.CallbackQuery):
+    data = callback.data
+    await callback.answer(f"Нажата кнопка: {data}", show_alert=True)
 
 
 async def main():
+    logging.info("Starting bot...")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
