@@ -1,17 +1,15 @@
 import asyncio
 import logging
 import aiohttp
+import json
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters.command import Command
 
 BOT_TOKEN = "7638473239:AAE87V8T6Xdn0kCQg9rg1KPW1MuociDwWaY"
 
-# === ВАШИ НАСТРОЙКИ CHATWOOT ===
-CHATWOOT_API_URL = "https://help.redwallet.app"
-CHATWOOT_API_TOKEN = "iAwyBVfycfViFrA8t5JZjd1R"
-CHATWOOT_ACCOUNT_ID = "1"
-CHATWOOT_INBOX_ID = "6"
+# Временное упрощение - работаем только с ботом, Chatwoot отлаживаем отдельно
+CHATWOOT_ENABLED = True  # Можно отключить для тестов
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
@@ -19,118 +17,84 @@ dp = Dispatcher()
 
 # === ХРАНИЛИЩА ===
 user_states = {}  # True = меню, False = оператор
-user_conversations = {}  # {user_id: conversation_id}
-user_contacts = {}  # {user_id: contact_id}
 
-# === CHATWOOT API ===
-async def get_or_create_chatwoot_contact(user: types.User):
-    """Создаем или получаем контакт в Chatwoot"""
-    user_id = user.id
+# === ПРОСТОЙ ВЫЗОВ CHATWOOT API ===
+async def send_to_chatwoot_simple(user: types.User, message: str):
+    """Прямая отправка в Chatwoot через их API для инбокса"""
     
-    # Проверяем кэш
-    if user_id in user_contacts:
-        return user_contacts[user_id]
+    if not CHATWOOT_ENABLED:
+        return False
     
-    # Создаем новый контакт
-    url = f"{CHATWOOT_API_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/contacts"
+    # URL для отправки сообщений в Telegram инбокс
+    url = "https://help.redwallet.app/api/v1/accounts/1/inboxes/6/contacts"
+    
     headers = {
-        "api_access_token": CHATWOOT_API_TOKEN,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "api_access_token": "iAwyBVfycfViFrA8t5JZjd1R"
     }
     
-    contact_data = {
-        "inbox_id": CHATWOOT_INBOX_ID,
-        "name": user.full_name or f"User_{user.id}",
-        "phone_number": None,
-        "email": None,
-        "custom_attributes": {
-            "telegram_id": str(user.id),
-            "username": user.username or "",
-            "first_name": user.first_name or "",
-            "last_name": user.last_name or ""
+    # Формируем данные как ожидает Chatwoot для Telegram
+    data = {
+        "inbox_id": 6,
+        "contact": {
+            "name": user.full_name or f"User_{user.id}",
+            "phone_number": None,
+            "email": None,
+            "custom_attributes": {
+                "telegram_id": str(user.id),
+                "username": user.username or ""
+            }
+        },
+        "message": {
+            "content": message,
+            "message_type": "incoming"
         }
     }
     
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=contact_data) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    contact_id = data["payload"]["contact"]["id"]
-                    user_contacts[user_id] = contact_id
-                    logging.info(f"Created Chatwoot contact {contact_id} for user {user_id}")
-                    return contact_id
-                else:
-                    error_text = await resp.text()
-                    logging.error(f"Failed to create contact: {resp.status} - {error_text}")
-                    return None
-    except Exception as e:
-        logging.error(f"Error creating Chatwoot contact: {e}")
-        return None
-
-async def create_chatwoot_conversation(contact_id, user_id):
-    """Создаем диалог в Chatwoot"""
-    url = f"{CHATWOOT_API_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations"
-    headers = {
-        "api_access_token": CHATWOOT_API_TOKEN,
-        "Content-Type": "application/json"
-    }
-    
-    conv_data = {
-        "inbox_id": CHATWOOT_INBOX_ID,
-        "contact_id": contact_id,
-        "status": "open"
-    }
-    
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=conv_data) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    conversation_id = data["id"]
-                    user_conversations[user_id] = conversation_id
-                    logging.info(f"Created Chatwoot conversation {conversation_id} for user {user_id}")
-                    return conversation_id
-                else:
-                    error_text = await resp.text()
-                    logging.error(f"Failed to create conversation: {resp.status} - {error_text}")
-                    return None
-    except Exception as e:
-        logging.error(f"Error creating conversation: {e}")
-        return None
-
-async def send_message_to_chatwoot(user_id, message_text):
-    """Отправляем сообщение пользователя в Chatwoot"""
-    if user_id not in user_conversations:
-        logging.error(f"No conversation for user {user_id}")
-        return False
-    
-    conversation_id = user_conversations[user_id]
-    url = f"{CHATWOOT_API_URL}/api/v1/accounts/{CHATWOOT_ACCOUNT_ID}/conversations/{conversation_id}/messages"
-    headers = {
-        "api_access_token": CHATWOOT_API_TOKEN,
-        "Content-Type": "application/json"
-    }
-    
-    message_data = {
-        "content": message_text,
-        "message_type": "incoming",
-        "private": False
-    }
-    
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=message_data) as resp:
-                if resp.status == 200:
-                    logging.info(f"Message sent to Chatwoot: {message_text[:50]}...")
+            async with session.post(url, headers=headers, json=data) as resp:
+                status = resp.status
+                response_text = await resp.text()
+                
+                logging.info(f"Chatwoot response: {status} - {response_text[:100]}")
+                
+                if status == 200:
                     return True
                 else:
-                    error_text = await resp.text()
-                    logging.error(f"Failed to send to Chatwoot: {resp.status} - {error_text}")
+                    logging.error(f"Chatwoot API error: {status} - {response_text}")
                     return False
+                    
     except Exception as e:
-        logging.error(f"Error sending to Chatwoot: {e}")
+        logging.error(f"Error calling Chatwoot: {e}")
         return False
+
+# === АЛЬТЕРНАТИВНЫЙ ВАРИАНТ - ТЕСТОВЫЙ ВЫЗОВ ===
+async def test_chatwoot_connection():
+    """Тестовый вызов для проверки доступности API"""
+    
+    test_urls = [
+        "https://help.redwallet.app/api/v1/accounts/1/inboxes",
+        "https://help.redwallet.app/api/v1/accounts/1/contacts",
+        "https://help.redwallet.app/api/v1/accounts/1/profile"
+    ]
+    
+    headers = {"api_access_token": "iAwyBVfycfViFrA8t5JZjd1R"}
+    
+    for url in test_urls:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers) as resp:
+                    print(f"\nURL: {url}")
+                    print(f"Status: {resp.status}")
+                    if resp.status == 200:
+                        data = await resp.json()
+                        print(f"Response OK, keys: {list(data.keys()) if isinstance(data, dict) else 'list'}")
+                    else:
+                        text = await resp.text()
+                        print(f"Error: {text[:200]}")
+        except Exception as e:
+            print(f"Exception: {e}")
 
 # === ДАННЫЕ МЕНЮ ===
 TOPICS = [
@@ -143,11 +107,6 @@ TOPICS = [
     "KYC и безопасность аккаунта",
     "Сотрудничество с RedWallet",
     "Техническая поддержка"
-]
-
-ANSWERS = [
-    # ... ваши 9 ответов ...
-    "Оператор"  # последний ответ
 ]
 
 # === КЛАВИАТУРЫ ===
@@ -172,9 +131,6 @@ async def cmd_start(message: types.Message):
     user_id = message.from_user.id
     user_states[user_id] = True
     
-    # Создаем контакт в Chatwoot
-    contact_id = await get_or_create_chatwoot_contact(message.from_user)
-    
     await message.answer(
         "📋 Выберите интересующую тему или задайте свой вопрос:",
         reply_markup=get_main_keyboard()
@@ -183,13 +139,32 @@ async def cmd_start(message: types.Message):
 @dp.message(Command("menu"))
 async def cmd_menu(message: types.Message):
     user_id = message.from_user.id
+    user_states[user_id] = True
+    await message.answer(
+        "📋 Выберите интересующую тему или задайте свой вопрос:",
+        reply_markup=get_main_keyboard()
+    )
+
+@dp.message(Command("test_chatwoot"))
+async def cmd_test_chatwoot(message: types.Message):
+    """Команда для тестирования подключения к Chatwoot"""
+    await message.answer("🔄 Тестирую подключение к Chatwoot...")
     
-    if user_states.get(user_id, True):
-        user_states[user_id] = True
-        await message.answer(
-            "📋 Выберите интересующую тему или задайте свой вопрос:",
-            reply_markup=get_main_keyboard()
-        )
+    # Запускаем тест
+    import asyncio as async_lib
+    from io import StringIO
+    import sys
+    
+    # Перенаправляем вывод
+    old_stdout = sys.stdout
+    sys.stdout = StringIO()
+    
+    await test_chatwoot_connection()
+    
+    output = sys.stdout.getvalue()
+    sys.stdout = old_stdout
+    
+    await message.answer(f"Результат теста:\n```\n{output[:3000]}\n```", parse_mode="Markdown")
 
 @dp.callback_query()
 async def handle_callback(callback: types.CallbackQuery):
@@ -206,31 +181,28 @@ async def handle_callback(callback: types.CallbackQuery):
         if topic_index == 8:  # Техническая поддержка
             user_states[user_id] = False
             
-            # 1. Получаем или создаем контакт
-            contact_id = await get_or_create_chatwoot_contact(callback.from_user)
-            
-            # 2. Создаем диалог в Chatwoot
-            if contact_id:
-                conversation_id = await create_chatwoot_conversation(contact_id, user_id)
+            # Пробуем отправить в Chatwoot
+            if CHATWOOT_ENABLED:
+                success = await send_to_chatwoot_simple(
+                    callback.from_user, 
+                    f"🔴 Пользователь запросил оператора: {callback.from_user.full_name or callback.from_user.id}"
+                )
                 
-                # 3. Отправляем триггер "Оператор" в Chatwoot
-                if conversation_id:
-                    await send_message_to_chatwoot(user_id, "🔴 Пользователь запросил оператора")
+                if success:
+                    logging.info("Сообщение отправлено в Chatwoot")
+                else:
+                    logging.warning("Не удалось отправить в Chatwoot")
             
-            # 4. Сообщаем пользователю
             await callback.message.answer(
                 "🔄 Соединяем с оператором...\n\n"
                 "После завершения диалога напишите /menu для возврата к темам."
             )
             
-            # Убираем клавиатуру
             await callback.message.edit_reply_markup(reply_markup=None)
             
         else:
-            # Обычные темы
-            answer_text = f"<b>{TOPICS[topic_index]}</b>\n\nОтвет на тему"
             await callback.message.edit_text(
-                answer_text,
+                f"<b>{TOPICS[topic_index]}</b>\n\nОтвет на тему будет здесь.",
                 reply_markup=get_back_keyboard(),
                 parse_mode="HTML"
             )
@@ -252,21 +224,24 @@ async def handle_all_messages(message: types.Message):
         return
     
     if user_states.get(user_id, True):
-        # В режиме меню - показываем подсказку
         await message.answer(
             "Используйте меню выше или напишите /menu для выбора темы.\n"
             "Если нужен оператор, выберите 'Техническая поддержка' в меню."
         )
     else:
-        # В режиме оператора - отправляем в Chatwoot
-        success = await send_message_to_chatwoot(user_id, message.text)
-        if not success:
-            await message.answer("⚠️ Не удалось отправить сообщение оператору. Попробуйте еще раз.")
+        # Отправляем сообщение в Chatwoot
+        if CHATWOOT_ENABLED:
+            await send_to_chatwoot_simple(message.from_user, message.text)
 
 async def main():
-    logging.info("Starting bot with Chatwoot integration...")
+    logging.info("Starting bot...")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    # Сначала протестируем подключение
+    print("Тестируем подключение к Chatwoot...")
+    asyncio.run(test_chatwoot_connection())
+    
+    # Затем запускаем бота
     asyncio.run(main())
