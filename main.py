@@ -1,204 +1,160 @@
 import asyncio
 import logging
-import json
 import aiohttp
+import json
+from aiohttp import web
 
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters.command import Command
+# === НАСТРОЙКИ ===
+BOT_TOKEN = "7638473239:AAE87V8T6Xdn0kCQg9rg1KPW1MuociDwWaY"  # Не используется напрямую, но нужен для проверки
+CHATWOOT_URL = "https://help.redwallet.app"
+CHATWOOT_API_TOKEN = "iAwyBVfycfViFrA8t5JZjd1R"
+ACCOUNT_ID = 1
 
-BOT_TOKEN = "7638473239:AAE87V8T6Xdn0kCQg9rg1KPW1MuociDwWaY"
-
-# === НАСТРОЙКИ DIALOGFLOW ===
-# Используем ваш Service Account
-SERVICE_ACCOUNT_INFO = {
-    "type": "service_account",
-    "project_id": "redwallet-wrvu",
-    "private_key_id": "27e9a411c51ee42738dd947e36a53c56f33609fa",
-    "private_key": """-----BEGIN PRIVATE KEY-----
-MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDn6+6FXRNMu5Zz
-mwPeTSu2qCdeSyYTU+pLEtmPLrnwzGk0l1WjpcL7U1B3aXVTdHVb8taFGHnjov09
-4TQuDylNu+GYwylKP0O9FzdmRsVEGQEQvg29mkB977P/ZH/R6JlesDBEVW2/p2Bn
-A5itl6mOTfbn0bLFuqDDH+Uz+GEdqU5VjSVhMEhDgyyzp8QQzMiwyX+zdZfqmAIi
-k/ddFSJylQA8uqewwMz6xrO4uOcznl3x7dqFASeUzfCWgwDw6MbsGG58EWGcr0BL
-XVUvTIFQGTFn5AHsslDEZmC8Jv6ADGCoSpq5ABlXPrfSIjAsLNyo5JOGRzC5o7wL
-1al8RsbHAgMBAAECggEAJpZpSGmXk/f5jOuZBaxGXoJKO+n6AFOWfdOO55Veh6j4
-b4Z8em7Slc7OFR2H/BDk6UhqwUNfcxdugOoPAgOGG50Wkzxpis/NkqZ3EmkqWkMP
-cScwvGrFWeQqSTnXUJLIWJUCZY7nOfD8h7dKoxttsTPZ+xviCFHIfMlk8TQy3bm5
-gpEYGvy7hFfFo99PtnCaw+j2Stw7uAuR4E1fBLeR4dx3Y47uGIqn9XPwKEgdBnWQ
-a8sUdkiGcR/FBKTLf+aAxL5DVoNGhNj/Gy0REktUmBfV7ZnV/EI6mCLphixWoWXd
-ZSfWnLD97rI7D2uy67uaboRq25vLfjGefFYWtZ81QQKBgQD1LfaqRhuxsvVe92PU
-1IJQke3oQIqoD5WI9KQH1gpRN6Ok8yAgoFjmk2ARJ2smECfM4AQH01SWb9RlkRTt
-R29331iD+F4wXNrRtIoJWlzTcmnxcJCmNT/9JZTwEQlbzGPFI4Dm+WAca+ILNzW+
-sU3kZLJKkgmyVHa8V11QlUKBQQKBgQDyKC4c0bW/atC02JuDsyga/WO3QcZ5kg0b
-QvuTpq0A9Qz1wW6SFFoZat3BjmvhW/+LLjcWqfdNMp4wjrm6mq/hstvAGKcY0H8Q
-2iVy971bt4YgAdlWSobQYrlYQgTkJp57XrnMPxGfcrRhGEY9Xa8rjbYQ18E554va
-wbelEse+BwKBgCT1S8R5Ev2jY1dwZU0Ux5wLk1g6OmyBBOKDNiK0QhPiFjnsKECi
-yyPevVF4pq8zKjy43AKt+Yc/zj2NNCFcblIcicRC8TfLF3UbCN/GDk4VZiDt/fAA
-AOhQ/PV/K/D5i2SRKIIovzMplAZqySA4q+wsva99+hY2ozta1AcsqLzBAoGAborT
-CgrdWcVMAtJCo6s8Kp3zUCuxi7uVShWYvH1AyogS43jqnbq2qpWzJ3F5Y8XYcNOn
-CCyMnOv3dJkixcFperFoSVe3p8c9yhabM9FN2rl7e878RLz+r8/xZg21J+VNQWor
-jMZZqBz3pL8tCURj+5DURPoI1gMSP8lgqPVawy8CgYA71usYfT6Yjt4A/hQFFqzY
-bGFEh6R/zgEV6glhsv4t2lc1ptprIKIDH4uNXg15qbCD4QG/e7GSzJTSiw8AfZPz
-N04KWVELD9PXTHxQ2qAowx3mhc8lCUqUsUyITwBswPDc6iWmhrwIjJjqpmh4qPOf
-vgR6kmPfmMDdv1eJFkbqgg==
------END PRIVATE KEY-----""",
-    "client_email": "redwallet@redwallet-wrvu.iam.gserviceaccount.com",
-    "client_id": "104583849772551193257",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/redwallet%40redwallet-wrvu.iam.gserviceaccount.com",
-    "universe_domain": "googleapis.com"
-}
-
-# Dialogflow REST API (проще чем библиотека)
-DIALOGFLOW_PROJECT_ID = "redwallet-wrvu"
-DIALOGFLOW_SESSION_ID = "telegram-session"
-
-# Или используем Dialogflow CX (проверьте в консоли Google)
-# DIALOGFLOW_LOCATION = "global"
-# DIALOGFLOW_AGENT_ID = "ваш-agent-id"
-
+# Логирование
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
 
-# === ОТПРАВКА В DIALOGFLOW ===
-async def send_to_dialogflow(session_id: str, message: str):
-    """Отправляем сообщение в Dialogflow через REST API"""
-    
-    # Получаем access token из service account
-    import google.auth
-    from google.oauth2 import service_account
-    
-    credentials = service_account.Credentials.from_service_account_info(
-        SERVICE_ACCOUNT_INFO,
-        scopes=["https://www.googleapis.com/auth/cloud-platform"]
-    )
-    
-    # Создаем авторизованную сессию
-    auth_req = google.auth.transport.requests.Request()
-    credentials.refresh(auth_req)
-    access_token = credentials.token
-    
-    # URL для Dialogflow API
-    url = f"https://dialogflow.googleapis.com/v2/projects/{DIALOGFLOW_PROJECT_ID}/agent/sessions/{session_id}:detectIntent"
-    
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-    
-    data = {
-        "queryInput": {
-            "text": {
-                "text": message,
-                "languageCode": "ru"
-            }
-        },
-        "queryParams": {
-            "timeZone": "Europe/Moscow"
-        }
-    }
-    
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=data) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    
-                    # Проверяем ответ Dialogflow
-                    fulfillment_text = result.get("queryResult", {}).get("fulfillmentText", "")
-                    intent = result.get("queryResult", {}).get("intent", {}).get("displayName", "")
-                    
-                    logging.info(f"Dialogflow response: intent={intent}, text={fulfillment_text[:50]}...")
-                    
-                    # Если Dialogflow вернул ответ, показываем его
-                    if fulfillment_text:
-                        return fulfillment_text
-                    
-                    # Если интент для оператора, Dialogflow сам передаст в Chatwoot
-                    if intent in ["operator", "support", "human_agent"]:
-                        return "🔄 Запрос передан оператору. Ожидайте ответа."
-                    
-                    return None
-                    
-                else:
-                    error_text = await response.text()
-                    logging.error(f"Dialogflow API error: {response.status} - {error_text}")
-                    return None
-                    
-    except Exception as e:
-        logging.error(f"Dialogflow request error: {e}")
-        return None
+# === ХРАНИЛИЩА ===
+states = {}  # user_id: {'state': 'menu' or 'operator', 'conversation_id': id, 'inbox_id': id}
 
-# === УПРОЩЕННАЯ ЛОГИКА БОТА ===
-@dp.message(Command("start"))
-async def cmd_start(message: types.Message):
-    await message.answer(
-        "👋 Добро пожаловать в поддержку RedWallet!\n\n"
-        "Задайте ваш вопрос или используйте команды:\n"
-        "/menu - Показать меню тем\n"
-        "/help - Помощь\n\n"
-        "Напишите 'оператор' для связи с живым специалистом."
-    )
+# === ДАННЫЕ МЕНЮ ===
+TOPICS = [
+    "Как стать мерчантом",
+    "Статус сделки или заявки", 
+    "Реферальная программа",
+    "P2P-торговля и Express-покупки",
+    "Комиссии и лимиты",
+    "Отзывы пользователей",
+    "KYC и безопасность аккаунта",
+    "Сотрудничество с RedWallet",
+    "Техническая поддержка"
+]
 
-@dp.message(Command("menu"))
-async def cmd_menu(message: types.Message):
-    # Можно показать меню или отправить запрос в Dialogflow
-    await message.answer(
-        "📋 **Основные темы:**\n\n"
-        "1. Как стать мерчантом\n"
-        "2. Статус сделки\n"
-        "3. Реферальная программа\n"
-        "4. P2P-торговля\n"
-        "5. Комиссии и лимиты\n"
-        "6. Отзывы\n"
-        "7. KYC и безопасность\n"
-        "8. Сотрудничество\n"
-        "9. Техническая поддержка\n\n"
-        "Напишите номер темы или ваш вопрос."
-    )
+ANSWERS = [
+    "Чтобы стать мерчантом RedWallet, заполните форму для прохождения проверки на соответствие нашим требованиям.\n\n"
+    "Форма для подачи заявки:\n\n"
+    "На что мы обращаем внимание:\n• Реальный ежемесячный оборот на нашей или других P2P-платформах\n• Репутация и отзывы\n\n"
+    "Срок рассмотрения заявки:\n• Ответ в течение 3 рабочих дней\n• В отдельных случаях можем запросить дополнительные данные\n\n"
+    "После проверки вы получите сообщение с решением в @rwapp_bot. В случае одобрения мы отправим инструкции по дальнейшим действиям.",
+    
+    "Информацию о статусе сделки вы можете посмотреть в приложении @rwapp_bot.\n\n"
+    "Если у вас возникла спорная ситуация или вопрос по сделке, подготовьте следующие данные:\n\n"
+    "• ID сделки или скриншот сделки\n• Краткое описание ситуации\n\n"
+    "Наш специалист поддержки свяжется с вами прямо здесь после рассмотрения обращения.",
+    
+    "Реферальная программа RedWallet позволяет получать процент с комиссии сделок приглашённых пользователей.\n\n"
+    "Ваша личная реферальная ссылка доступна в разделе Бонусы → Реферальная программа в приложении @rwapp_bot.\n\n"
+    "Дополнительная информация о программе также доступна в приложении.",
+    
+    "P2P-торговля позволяет покупать и продавать криптовалюту напрямую между пользователями с защитой эскроу.\n\n"
+    "Express-покупки это быстрый способ купить криптовалюту по готовому предложению без создания ордера.\n\n"
+    "Все операции доступны в приложении @rwapp_bot.",
+    
+    "Лимиты:\n• Пополнение и вывод от 5 USD\n• Минимальный ордер от 100 рублей\n\n"
+    "Комиссии:\nАктуальные комиссии зависят от типа операции и сети и отображаются в приложении @rwapp_bot.\n\n"
+    "Для новых пользователей действует акция 0% комиссии. Подробности доступны в документации "
+    [](https://docs.redwallet.app/hc/faq/articles/1764657267-) и в приложении.",
+    
+    "Отзывы пользователей о работе сервиса и P2P-сделках вы можете посмотреть в нашем канале: @redwallet_reviews",
+    
+    "В RedWallet используется усиленная система верификации, необходимая для защиты пользователей и безопасной работы P2P-платформы. "
+    "Она снижает риски мошенничества, исключает дропов и серые схемы и повышает надёжность сделок между пользователей.\n\n"
+    "В разделе Безопасность вы можете пройти верификацию и необходимые подтверждения, процесс занимает несколько минут и обычно проходит автоматически. "
+    "Все данные обрабатываются в защищённом виде и используются только в рамках безопасности и разрешения спорных ситуаций.\n\n"
+    "Подробности и статус доступны в @rwapp_bot.",
+    
+    "Вы можете оставить предложение о сотрудничестве прямо здесь в чате. Просто опишите вашу идею, формат или предложение в сообщении.\n\n"
+    "📧 Также вы можете написать нам на почту info@redwallet.app",
+    
+    "🔴 Пользователь запросил подключение к оператору. Соединяем..."
+]
 
-@dp.message(Command("operator"))
-async def cmd_operator(message: types.Message):
-    """Прямой вызов оператора"""
-    user_id = message.from_user.id
-    session_id = f"telegram-{user_id}"
-    
-    # Отправляем запрос оператора в Dialogflow
-    response = await send_to_dialogflow(session_id, "оператор")
-    
-    if response:
-        await message.answer(response)
-    else:
-        await message.answer("🔄 Соединяем с оператором...")
+# === CHATWOOT API ФУНКЦИИ ===
+async def send_chatwoot_message(conversation_id, content, attachments=None):
+    url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}/messages"
+    headers = {"api_access_token": CHATWOOT_API_TOKEN, "Content-Type": "application/json"}
+    data = {"content": content, "message_type": "outgoing"}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=headers, json=data) as resp:
+            if resp.status != 200:
+                logging.error(f"Failed to send message: {await resp.text()}")
+            else:
+                logging.info("Message sent to user")
 
-@dp.message()
-async def handle_all_messages(message: types.Message):
-    user_id = message.from_user.id
-    text = message.text
-    
-    if not text.strip():
+async def update_conversation_status(conversation_id, status="open"):
+    url = f"{CHATWOOT_URL}/api/v1/accounts/{ACCOUNT_ID}/conversations/{conversation_id}"
+    headers = {"api_access_token": CHATWOOT_API_TOKEN, "Content-Type": "application/json"}
+    data = {"status": status}
+    async with aiohttp.ClientSession() as session:
+        async with session.put(url, headers=headers, json=data) as resp:
+            if resp.status != 200:
+                logging.error(f"Failed to update status: {await resp.text()}")
+            else:
+                logging.info(f"Conversation status updated to {status}")
+
+# === ЛОГИКА БОТА ===
+async def process_message(data):
+    event = data.get('event')
+    if event != 'message_created':
         return
     
-    # Создаем уникальную сессию для пользователя
-    session_id = f"telegram-{user_id}"
+    message = data['message']
+    if message['message_type'] != 'incoming':
+        return
     
-    # Отправляем в Dialogflow
-    dialogflow_response = await send_to_dialogflow(session_id, text)
+    conversation = data['conversation']
+    conv_id = conversation['id']
+    inbox_id = conversation['inbox_id']
+    user_id = message['sender']['id']  # Telegram user ID from custom_attributes
     
-    if dialogflow_response:
-        # Если Dialogflow вернул ответ, показываем его
-        await message.answer(dialogflow_response)
-    else:
-        # Если нет ответа, сообщаем что запрос обработан
-        await message.answer("✅ Ваш запрос получен. Ожидайте ответа.")
+    # Инициализация состояния
+    if user_id not in states:
+        states[user_id] = {'state': 'menu', 'conversation_id': conv_id, 'inbox_id': inbox_id}
+    
+    state = states[user_id]['state']
+    content = message['content']
+    
+    if state == 'menu':
+        if content.lower() == '/start' or content.lower() == '/menu':
+            await send_chatwoot_message(conv_id, "📋 Выберите интересующую тему или задайте свой вопрос:", attachments=[get_main_keyboard()])
+        elif content.startswith('topic_'):
+            topic_index = int(content.split('_')[1])
+            if topic_index == 8:  # Техподдержка
+                states[user_id]['state'] = 'operator'
+                await update_conversation_status(conv_id, "open")  # Handoff: меняем на open для оператора
+                await send_chatwoot_message(conv_id, ANSWERS[8])
+            else:
+                await send_chatwoot_message(conv_id, f"<b>{TOPICS[topic_index]}</b>\n\n{ANSWERS[topic_index]}", attachments=[get_back_keyboard()])
+        elif content == 'back_to_topics':
+            await send_chatwoot_message(conv_id, "📋 Выберите интересующую тему или задайте свой вопрос:", attachments=[get_main_keyboard()])
+        else:
+            await send_chatwoot_message(conv_id, "Используйте меню или напишите /menu.")
+    elif state == 'operator':
+        # Сообщения идут оператору как есть, бот не вмешивается
+        pass
 
-async def main():
-    logging.info("Starting bot with Dialogflow integration...")
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+# === КЛАВИАТУРЫ (как JSON для Chatwoot attachments) ===
+def get_main_keyboard():
+    buttons = []
+    for i in range(0, len(TOPICS), 2):
+        row = []
+        row.append({"type": "postback", "title": TOPICS[i], "payload": f"topic_{i}"})
+        if i + 1 < len(TOPICS):
+            row.append({"type": "postback", "title": TOPICS[i+1], "payload": f"topic_{i+1}"})
+        buttons.append(row)
+    return {"type": "template", "template_type": "button", "text": "Меню", "buttons": buttons}  # Адаптировано под Chatwoot Telegram attachments
+
+def get_back_keyboard():
+    return {"type": "template", "template_type": "button", "text": "Назад", "buttons": [{"type": "postback", "title": "↩ Назад к темам", "payload": "back_to_topics"}]}
+
+# === WEBHOOK СЕРВЕР ===
+async def webhook_handler(request):
+    data = await request.json()
+    logging.info(f"Received webhook: {json.dumps(data, indent=2)}")
+    await process_message(data)
+    return web.Response(text="OK")
+
+app = web.Application()
+app.router.add_post('/chatwoot-webhook', webhook_handler)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    web.run_app(app, port=8000)  # Запустите на сервере, используйте ngrok для теста
