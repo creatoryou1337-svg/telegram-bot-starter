@@ -52,14 +52,14 @@ FAQ_ANSWERS = [
 @dp.message(Command("start", "menu"))
 async def show_main_menu(message: types.Message):
     kb = types.InlineKeyboardMarkup(inline_keyboard=[
-        # 1-я строка — одна длинная
+        # 1-я строка — одна длинная кнопка
         [
             types.InlineKeyboardButton(
                 text="Открыть приложение",
                 url="https://t.me/rwapp_bot"
             )
         ],
-        # 2-я строка — три короткие
+        # 2-я строка — три короткие кнопки
         [
             types.InlineKeyboardButton(text="FAQ", callback_data="faq_menu"),
             types.InlineKeyboardButton(text="Стать Мерчантом", callback_data="merchant"),
@@ -68,7 +68,13 @@ async def show_main_menu(message: types.Message):
     ])
 
     await message.answer(
-        "Привет! Выбери действие:",
+        """Приветствуем в RedWallet!
+Это удобный криптокошелёк внутри Telegram, где вы можете покупать, продавать и обменивать цифровые активы — быстро, безопасно и без лишних действий.
+⚡️ P2P-сделки за секунды и по прозрачному курсу
+🔒 Усиленная защита и продуманная анти-фрод система
+💼 Инструменты как для новичков, так и для опытных трейдеров и мерчантов
+💰 Честные условия работы без скрытых комиссий
+🏦 P2P оффлайн и мгновенные выводы (скоро)""",
         reply_markup=kb
     )
 
@@ -78,7 +84,6 @@ async def handle_callback(callback: types.CallbackQuery):
     data = callback.data
 
     if data == "faq_menu":
-        # Красивая сетка FAQ — по 2 кнопки в ряд, последняя одна
         kb = types.InlineKeyboardMarkup(inline_keyboard=[])
         for i in range(0, len(FAQ_TOPICS), 2):
             row = []
@@ -97,11 +102,12 @@ async def handle_callback(callback: types.CallbackQuery):
 
     elif data.startswith("faq_"):
         idx = int(data.split("_")[1])
+        kb = types.InlineKeyboardMarkup(inline_keyboard=[
+            [types.InlineKeyboardButton(text="↩ Назад к FAQ", callback_data="faq_menu")]
+        ])
         await callback.message.edit_text(
             f"<b>{FAQ_TOPICS[idx]}</b>\n\n{FAQ_ANSWERS[idx]}",
-            reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[
-                [types.InlineKeyboardButton(text="↩ Назад к FAQ", callback_data="faq_menu")]
-            ]),
+            reply_markup=kb,
             parse_mode="HTML"
         )
 
