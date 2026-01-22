@@ -16,6 +16,7 @@ async def show_main_menu(message: types.Message):
         [
             types.InlineKeyboardButton(
                 text="Открыть приложение",
+                # Тут тебе надо поставить свою ссылку для mini app прямого открытия, эту мне дал Вася я хз это то или нет
                 url="https://t.me/rwapp_bot"
             ),
             types.InlineKeyboardButton(
