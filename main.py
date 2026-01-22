@@ -56,7 +56,7 @@ async def show_main_menu(message: types.Message):
         [
             types.InlineKeyboardButton(
                 text="Открыть приложение",
-                url="https://t.me/rwapp_bot"
+                url="https://tg.redwallet.app/"
             )
         ],
         # 2-я строка — три короткие кнопки
