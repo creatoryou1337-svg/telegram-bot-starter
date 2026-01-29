@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Crypto Wallet Test</title>
+  <title>Crypto → RUB</title>
   <style>
     :root {
       --yellow-light: #fefce8;
@@ -73,6 +73,7 @@
       box-shadow: var(--shadow);
       position: relative;
       overflow: hidden;
+      margin-bottom: 32px;
     }
     .balance-card::before {
       content: "";
@@ -145,7 +146,6 @@
       font-size: 1.6rem;
     }
     .exchange-section {
-      margin-top: 40px;
       background: white;
       border-radius: 20px;
       padding: 24px;
@@ -153,16 +153,34 @@
     }
     .exchange-section h2 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       color: var(--orange);
+    }
+    .input-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: var(--text-gray);
     }
     input {
       width: 100%;
-      padding: 14px;
-      margin-bottom: 16px;
+      padding: 14px 16px;
       border: 1px solid #d1d5db;
       border-radius: 12px;
-      font-size: 1rem;
+      font-size: 1.1rem;
+    }
+    .rate-info {
+      font-size: 0.95rem;
+      color: var(--text-gray);
+      margin-top: -12px;
+      margin-bottom: 24px;
+      padding-left: 4px;
+    }
+    .rate-info strong {
+      color: var(--orange);
     }
     button.primary {
       width: 100%;
@@ -179,11 +197,17 @@
       background: var(--orange-hover);
     }
     #result {
-      margin-top: 20px;
+      margin-top: 24px;
       padding: 16px;
       background: #f3f4f6;
       border-radius: 12px;
-      display: none;
+      line-height: 1.5;
+    }
+    #result strong {
+      color: #15803d;
+    }
+    #result.error strong {
+      color: #dc2626;
     }
   </style>
 </head>
@@ -198,6 +222,7 @@
   </div>
 
   <div class="main-container">
+    <!-- Карточка баланса (как на скрине) -->
     <div class="balance-card">
       <div class="card-content">
         <div class="profile-link">
@@ -225,48 +250,118 @@
       </div>
     </div>
 
-    <!-- Секция обмена (твоя предыдущая форма) -->
+    <!-- Секция вывода / обмена -->
     <div class="exchange-section">
-      <h2>Обмен токенов → RUB</h2>
-      <input id="wallet" type="text" placeholder="Адрес кошелька (0x...)" />
-      <input id="amount" type="number" placeholder="Сумма токенов" min="1" />
-      <input id="card" type="text" placeholder="Карта / СБП (+7... или 2200...)" />
-      <button class="primary" onclick="createOrder()">Создать заявку</button>
+      <h2>Вывести USDT → RUB</h2>
+
+      <div class="input-group">
+        <label>Сумма в USDT</label>
+        <input id="amount" type="number" placeholder="100" min="1" step="0.01" required />
+        <div id="rate-info" class="rate-info">Курс USDT/RUB: <strong>—</strong> ₽ (примерно <strong>—</strong> ₽ после комиссии)</div>
+      </div>
+
+      <div class="input-group">
+        <label>Номер карты или СБП</label>
+        <input id="card" type="text" placeholder="2200 1234 5678 9012 или +7..." required />
+      </div>
+
+      <button class="primary" onclick="createOrder()">Вывести средства</button>
+
       <div id="result"></div>
     </div>
   </div>
 
   <script>
+    const BACKEND_URL = 'https://testbackend-a36a.onrender.com';
+    const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=rub';
+
+    let currentRate = null;
+
+    // Получаем курс при загрузке страницы
+    async function loadRate() {
+      try {
+        const res = await fetch(COINGECKO_URL);
+        const data = await res.json();
+        currentRate = data.tether.rub;
+
+        if (currentRate) {
+          updateRateDisplay();
+        }
+      } catch (e) {
+        console.error('Не удалось загрузить курс', e);
+        document.getElementById('rate-info').innerHTML = 'Курс USDT/RUB: <strong>ошибка загрузки</strong>';
+      }
+    }
+
+    function updateRateDisplay() {
+      const amountInput = document.getElementById('amount');
+      const rateInfo = document.getElementById('rate-info');
+
+      const amount = parseFloat(amountInput.value) || 0;
+      const market = currentRate ? currentRate.toFixed(2) : '—';
+      const afterCommission = currentRate ? (currentRate * 0.975).toFixed(2) : '—'; // -2.5%
+      const estimatedRub = amount > 0 && currentRate ? (amount * currentRate * 0.975).toFixed(0) : '—';
+
+      rateInfo.innerHTML = `
+        Курс USDT/RUB: <strong>${market} ₽</strong><br>
+        После комиссии ≈ <strong>${afterCommission} ₽</strong> за 1 USDT<br>
+        Вы получите примерно <strong>${estimatedRub} ₽</strong>
+      `;
+    }
+
+    // Обновляем оценку при вводе суммы
+    document.getElementById('amount').addEventListener('input', updateRateDisplay);
+
+    // Отправка заявки
     async function createOrder() {
-      const wallet = document.getElementById('wallet').value.trim();
       const amount = document.getElementById('amount').value;
       const card = document.getElementById('card').value.trim();
       const result = document.getElementById('result');
 
-      if (!wallet || !amount || !card) {
-        result.innerHTML = '<p style="color:red;">Заполните все поля!</p>';
+      if (!amount || parseFloat(amount) <= 0 || !card) {
+        result.innerHTML = '<p style="color:#dc2626;">Укажите сумму и номер карты/СБП</p>';
         result.style.display = 'block';
         return;
       }
 
-      result.innerHTML = '<p>Обработка...</p>';
+      result.innerHTML = '<p>Обработка заявки...</p>';
       result.style.display = 'block';
 
       try {
-        const res = await fetch('https://testbackend-a36a.onrender.com/api/test-order', {
+        const res = await fetch(`${BACKEND_URL}/api/create-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ wallet, amount })
+          body: JSON.stringify({
+            wallet: 'auto',           // заглушка, т.к. кошелёк автоматический
+            amountToken: parseFloat(amount),
+            cardNumber: card
+          })
         });
+
         const data = await res.json();
 
-        result.innerHTML = data.success
-          ? `<strong style="color:green">Успех!</strong><br>${data.message}<br>${data.note}`
-          : `<strong style="color:red">Ошибка:</strong> ${data.error || 'Неизвестно'}`;
+        if (data.success) {
+          result.innerHTML = `
+            <strong style="color:#15803d">Заявка создана!</strong><br>
+            ${data.message}<br>
+            Рыночный курс: ${data.marketRate} ₽<br>
+            Курс с комиссией: ${data.effectiveRate} ₽<br>
+            К выводу: <strong>${data.amountRub} ₽</strong><br>
+            ${data.note}
+          `;
+          result.className = '';
+        } else {
+          result.innerHTML = `<strong style="color:#dc2626">Ошибка:</strong> ${data.error || 'Неизвестная ошибка'}`;
+          result.className = 'error';
+        }
       } catch (e) {
-        result.innerHTML = `<strong style="color:red">Ошибка связи:</strong> ${e.message}`;
+        result.innerHTML = `<strong style="color:#dc2626">Ошибка связи:</strong> ${e.message}`;
+        result.className = 'error';
       }
     }
+
+    // Загружаем курс сразу
+    loadRate();
   </script>
 </body>
 </html>
