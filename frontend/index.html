@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Exchange | Токены → RUB</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --card-bg: #121212;
+      --text: #ffffff;
+      --accent: #e53935;       /* яркий красный как в RedWallet */
+      --accent-hover: #f44336;
+      --secondary: #ff5252;
+      --gray: #b0b0b0;
+      --border: #333333;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: linear-gradient(135deg, #1a1a1a, #0a0a0a);
+      padding: 20px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      color: var(--accent);
+    }
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .exchange-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 1px solid var(--border);
+    }
+    .exchange-card h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 1.8rem;
+      color: var(--text);
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--gray);
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 14px;
+      background: #1e1e1e;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      transition: border 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    button {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: var(--accent-hover);
+    }
+    #result {
+      margin-top: 30px;
+      padding: 20px;
+      background: #1e1e1e;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: none;
+      white-space: pre-wrap;
+    }
+    .status {
+      color: var(--secondary);
+      font-weight: bold;
+    }
+    footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 20px;
+      color: var(--gray);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Crypto Exchange</h1>
+    <p>Токены → RUB на карту или СБП • Быстро • Безопасно</p>
+  </header>
+
+  <div class="container">
+    <div class="exchange-card">
+      <h2>Создать заявку на обмен</h2>
+
+      <div class="form-group">
+        <label>Адрес вашего кошелька (EVM)</label>
+        <input type="text" id="wallet" placeholder="0x1234..." required>
+      </div>
+
+      <div class="form-group">
+        <label>Сумма токенов (например USDT)</label>
+        <input type="number" id="amount" placeholder="100" min="1" required>
+      </div>
+
+      <div class="form-group">
+        <label>Номер карты или телефона СБП</label>
+        <input type="text" id="card" placeholder="2200 1234 5678 9012 или +7..." required>
+      </div>
+
+      <button onclick="createOrder()">Создать заявку</button>
+
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <footer>
+    Тестовый обменник • Работает на Render • 2026
+  </footer>
+
+  <script>
+    async function createOrder() {
+      const wallet = document.getElementById('wallet').value.trim();
+      const amount = document.getElementById('amount').value;
+      const card = document.getElementById('card').value.trim();
+      const resultDiv = document.getElementById('result');
+
+      if (!wallet || !amount || !card) {
+        resultDiv.innerHTML = '<p style="color:red;">Заполните все поля!</p>';
+        resultDiv.style.display = 'block';
+        return;
+      }
+
+      resultDiv.innerHTML = '<p>Отправка заявки...</p>';
+      resultDiv.style.display = 'block';
+
+      try {
+        const response = await fetch('https://твоя-ссылка.onrender.com/api/test-order', {  // ← Замени на ТВОЙ URL бэкенда!
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ wallet, amount })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          resultDiv.innerHTML = `
+            <p class="status">Заявка создана успешно!</p>
+            <p>${data.message}</p>
+            <p>${data.note}</p>
+            <p>Сумма к получению: примерно ${Math.floor(amount * 95)} ₽ (курс ~95 ₽)</p>
+            <p>Отправьте токены и ждите выплату!</p>
+          `;
+        } else {
+          resultDiv.innerHTML = `<p style="color:red;">Ошибка: ${data.error || 'Неизвестная ошибка'}</p>`;
+        }
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color:red;">Ошибка соединения: ${err.message}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
