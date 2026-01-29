@@ -1,11 +1,13 @@
 {
-  "name": "test-render-express",
+  "name": "crypto-backend-test",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "axios": "^1.7.7",
+    "cors": "^2.8.5"
   }
 }
