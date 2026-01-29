@@ -168,7 +168,7 @@
       resultDiv.style.display = 'block';
 
       try {
-        const response = await fetch('https://твоя-ссылка.onrender.com/api/test-order', {  // ← Замени на ТВОЙ URL бэкенда!
+        const response = await fetch('https://testbackend-a36a.onrender.com/api/test-order', {  // ← Замени на ТВОЙ URL бэкенда!
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ wallet, amount })
